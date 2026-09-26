@@ -18,8 +18,8 @@ public class AuditTrailHandler implements TriggerHandler {
                             Object newValue = newRecord.get(field);
                             if (oldValue != newValue && (oldValue == null || !oldValue.equals(newValue))) {
                                 FieldChangeWrapper fcw = new FieldChangeWrapper();
-                                fcw.oldValue = oldValue;
-                                fcw.newValue = newValue;
+                                fcw.oldValue = (String) oldValue;
+                                fcw.newValue = (String) newValue;
                                 FieldWrapper fw = new FieldWrapper();
                                 fw.fcw = fcw;
                                 fw.fieldName = field;

@@ -22,7 +22,7 @@ public class AuditTrailController {
                     Map<String, Object> fcw = (Map<String, Object>)changedFields.get(key);
                     FieldChange fc = new FieldChange();
                     fc.fieldApiName = key;
-                    Schema.DescribeFieldResult fieldDescribe = tergetType.getDescribe().fields.getMap().get(key);
+                    Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(key).getDescribe();
                     fc.fieldLabel = fieldDescribe.getLabel();
                     fc.oldValue = (String)fcw.get('oldValue');
                     fc.newValue = (String)fcw.get('newValue');

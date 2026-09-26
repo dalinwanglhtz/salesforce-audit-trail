@@ -1,0 +1,26 @@
+<template>
+    <div>
+        <ul class="slds-timeline">
+            <template for:each={snapshots} for:item="snap">
+                <li key={snap.id}>
+                    <div class="slds-timeline__item_expandable slds-timeline__item_active">
+                        <div class="slds-media">
+                            <div class="slds-media__body">
+                                <div class="slds-tile">
+                                    <p>{snap.action} by {snap.modifiedBy} on {snap.timestamp}</p>
+                                        <template for:each={snap.changes} for:item="change">
+                                            <div key={change.fieldApiName}>
+                                                <div>Field: {change.fieldLabel}</div>
+                                                <div>Old: {change.oldValue}</div>
+                                                <div>New: {change.newValue}</div>
+                                            </div>
+                                        </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            </template>
+        </ul>
+    </div>
+</template>
