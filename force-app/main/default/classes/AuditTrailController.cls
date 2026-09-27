@@ -3,7 +3,7 @@ public class AuditTrailController {
     public static List<SnapshotWrapper> getRecordSnapshots(Id recordId){
         try {
             List<Audit_Snapshot__c> snapshots = [
-                SELECT Id, Record_Id__c, Object_API_Name__c, Action__c, Changed_Fields_JSON__c, Modified_By__c, CreatedDate 
+                SELECT Id, Record_Id__c, Object_API_Name__c, Action__c, Changed_Fields_JSON__c, Modified_By__r.Name, CreatedDate 
                 FROM Audit_Snapshot__c
                 WHERE Record_Id__c = :recordId
                 ORDER BY CreatedDate DESC
@@ -16,18 +16,22 @@ public class AuditTrailController {
                 sw.timestamp = snapshot.CreatedDate;
                 sw.action = snapshot.Action__c;
                 sw.modifiedBy = snapshot.Modified_By__r.Name;
-                Map<String, Object> changedFields = (Map<String, Object>) JSON.deserializeUntyped(snapshot.Changed_Fields_JSON__c);
+                Map<String, Object> changedFields = (Map<String, Object>) System.JSON.deserializeUntyped(snapshot.Changed_Fields_JSON__c);
                 List<FieldChange> changes = new List<FieldChange>();
+                FieldChange fc = new FieldChange();
                 for (String key : changedFields.keySet()) {
-                    Map<String, Object> fcw = (Map<String, Object>)changedFields.get(key);
-                    FieldChange fc = new FieldChange();
-                    fc.fieldApiName = key;
-                    Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(key).getDescribe();
-                    fc.fieldLabel = fieldDescribe.getLabel();
-                    fc.oldValue = (String)fcw.get('oldValue');
-                    fc.newValue = (String)fcw.get('newValue');
-                    changes.add(fc);
+                    Map<String, Object> fcw = new Map<String, Object>();
+                    if (key == 'fcw') {
+                        fcw = (Map<String, Object>) changedFields.get(key);
+                        fc.oldValue = (String)fcw.get('oldValue');
+                        fc.newValue = (String)fcw.get('newValue');
+                    } else {
+                        fc.fieldApiName = (String) changedFields.get(key);
+                        Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(fc.fieldApiName).getDescribe();
+                        fc.fieldLabel = fieldDescribe.getLabel();
+                    }
                 }
+                changes.add(fc);
                 sw.changes = changes;
                 results.add(sw);
             }

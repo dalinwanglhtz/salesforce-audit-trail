@@ -9,7 +9,6 @@ export default class AuditTimeline extends LightningElement {
     wiredSnapshots({error, data}) {
         if (data) {
             this.snapshots = data;
-            console.log('Snapshot: ', this.snapshots);
         } else {
             console.error('Error fetching snapshots: ', error);
             this.snapshots = [];
