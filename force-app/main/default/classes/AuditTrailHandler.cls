@@ -11,6 +11,7 @@ public class AuditTrailHandler implements TriggerHandler {
             for (Audit_Setting__mdt setting : settings) {
                 if (setting.Object_API_Name__c == newRecord.getSObjectType().getDescribe().getName()) {
                     List<String> trackedFields = setting.Tracked_Fields__c != null ? setting.Tracked_Fields__c.split(',') : null;
+                    List<FieldWrapper> fwList = new List<FieldWrapper>();
                     if (trackedFields != null) {
                         for (String field : trackedFields) {
                             field = field.trim();
@@ -23,17 +24,18 @@ public class AuditTrailHandler implements TriggerHandler {
                                 FieldWrapper fw = new FieldWrapper();
                                 fw.fcw = fcw;
                                 fw.fieldName = field;
-                                snapshots.add(new Audit_Snapshot__c(
-                                        Record_Id__c = (Id) newRecord.get('Id'),
-                                        Object_API_Name__c = newRecord.getSObjectType().getDescribe().getName(),
-                                        Action__c = 'Update',
-                                        Changed_Fields_JSON__c = JSON.serialize(fw),
-                                        Modified_By__c = (String) newRecord.get('LastModifiedById')
-                                    )
-                                );
+                                fwList.add(fw);
                             }
                         }
                     }
+                    snapshots.add(new Audit_Snapshot__c(
+                            Record_Id__c = (Id) newRecord.get('Id'),
+                            Object_API_Name__c = newRecord.getSObjectType().getDescribe().getName(),
+                            Action__c = 'Update',
+                            Changed_Fields_JSON__c = JSON.serialize(fwList),
+                            Modified_By__c = (String) newRecord.get('LastModifiedById')
+                        )
+                    );
                 }
             }
         }

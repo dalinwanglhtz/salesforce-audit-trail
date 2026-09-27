@@ -1,0 +1,13 @@
+/* Remove the vertical line connecting timeline items */
+.slds-timeline__item_expandable::before,
+.slds-timeline__item_active::before,
+.slds-timeline__item::before,
+.slds-timeline item::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* Remove default left line padding/margins if needed */
+.slds-timeline > li {
+    border-left: none !important;
+}

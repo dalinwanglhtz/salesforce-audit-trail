@@ -16,22 +16,25 @@ public class AuditTrailController {
                 sw.timestamp = snapshot.CreatedDate;
                 sw.action = snapshot.Action__c;
                 sw.modifiedBy = snapshot.Modified_By__r.Name;
-                Map<String, Object> changedFields = (Map<String, Object>) System.JSON.deserializeUntyped(snapshot.Changed_Fields_JSON__c);
+                List<Object> changedFields = (List<Object>) System.JSON.deserializeUntyped(snapshot.Changed_Fields_JSON__c);
                 List<FieldChange> changes = new List<FieldChange>();
-                FieldChange fc = new FieldChange();
-                for (String key : changedFields.keySet()) {
-                    Map<String, Object> fcw = new Map<String, Object>();
-                    if (key == 'fcw') {
-                        fcw = (Map<String, Object>) changedFields.get(key);
-                        fc.oldValue = (String)fcw.get('oldValue');
-                        fc.newValue = (String)fcw.get('newValue');
-                    } else {
-                        fc.fieldApiName = (String) changedFields.get(key);
-                        Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(fc.fieldApiName).getDescribe();
-                        fc.fieldLabel = fieldDescribe.getLabel();
+                for (Object obj : changedFields) {
+                    Map<String, Object> changedField = (Map<String, Object>) obj;
+                    FieldChange fc = new FieldChange();
+                    for (String key : changedField.keySet()) {
+                        Map<String, Object> fcw = new Map<String, Object>();
+                        if (key == 'fcw') {
+                            fcw = (Map<String, Object>) changedField.get(key);
+                            fc.oldValue = (String)fcw.get('oldValue');
+                            fc.newValue = (String)fcw.get('newValue');
+                        } else {
+                            fc.fieldApiName = (String) changedField.get(key);
+                            Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(fc.fieldApiName).getDescribe();
+                            fc.fieldLabel = fieldDescribe.getLabel();
+                        }
                     }
+                    changes.add(fc);
                 }
-                changes.add(fc);
                 sw.changes = changes;
                 results.add(sw);
             }

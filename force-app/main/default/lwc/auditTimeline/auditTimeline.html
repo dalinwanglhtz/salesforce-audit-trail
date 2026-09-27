@@ -1,26 +1,62 @@
 <template>
-    <div>
-        <ul class="slds-timeline">
-            <template for:each={snapshots} for:item="snap">
-                <li key={snap.id}>
-                    <div class="slds-timeline__item_expandable slds-timeline__item_active">
-                        <div class="slds-media">
-                            <div class="slds-media__body">
-                                <div class="slds-tile">
-                                    <p>{snap.action} by {snap.modifiedBy} on {snap.timestamp}</p>
-                                        <template for:each={snap.changes} for:item="change">
-                                            <div key={change.fieldApiName}>
-                                                <div>Field: {change.fieldLabel}</div>
-                                                <div>Old: {change.oldValue}</div>
-                                                <div>New: {change.newValue}</div>
-                                            </div>
+    <div class="slds-card slds-p-around_medium">
+        <template lwc:if={snapshots.length}>
+            <ul class="slds-timeline">
+                <template for:each={snapshots} for:item="snap">
+                    <li key={snap.id}>
+                        <div class="slds-timeline__item_expandable slds-timeline__item_active slds-has-flexi-truncate">
+                            <div class="slds-media">
+                                <div class="slds-media__figure">
+                                    <lightning-icon 
+                                        icon-name="standard:record" 
+                                        size="small" 
+                                        alt-text="Audit Entry">
+                                    </lightning-icon>
+                                </div>
+                                <div class="slds-media__body">
+                                    <div class="slds-grid slds-grid_align-spread slds-timeline__trigger">
+                                        <div class="slds-grid slds-grid_vertical-align-center slds-truncate_container_75">
+                                            <h3 class="slds-truncate" title={snap.action}>
+                                                <strong>{snap.action}</strong> by <strong>{snap.modifiedBy}</strong>
+                                            </h3>
+                                        </div>
+                                        <div class="slds-timeline__actions">
+                                            <p class="slds-timeline__date">
+                                                <lightning-formatted-date-time value={snap.timestamp} year="numeric" month="short" day="2-digit" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Changes Detail Box -->
+                                    <div class="slds-box slds-box_x-small slds-m-top_x-small change-box">
+                                        <template lwc:if={snap.changes}>
+                                            <template for:each={snap.changes} for:item="change">
+                                                <div key={change.fieldApiName} class="slds-grid slds-wrap change-row slds-p-vertical_xx-small">
+                                                    <div class="slds-col slds-size_1-of-3 slds-font-weight_bold">
+                                                        {change.fieldLabel}
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-3 slds-text-color_weak">
+                                                        <span>Old: </span>{change.oldValue}
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-3">
+                                                        <span>New: </span><strong>{change.newValue}</strong>
+                                                    </div>
+                                                </div>
+                                            </template>
                                         </template>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </li>
-            </template>
-        </ul>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <template lwc:else>
+            <div class="slds-text-align_center slds-text-color_weak slds-p-around_medium">
+                No audit snapshots found for this record.
+            </div>
+        </template>
     </div>
 </template>
