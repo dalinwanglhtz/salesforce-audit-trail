@@ -18,12 +18,7 @@ public class AuditTrailHandler implements TriggerHandler {
                             Object oldValue = oldRecord.get(field);
                             Object newValue = newRecord.get(field);
                             if (oldValue != newValue && (oldValue == null || !oldValue.equals(newValue))) {
-                                FieldChangeWrapper fcw = new FieldChangeWrapper();
-                                fcw.oldValue = (String) oldValue;
-                                fcw.newValue = (String) newValue;
-                                FieldWrapper fw = new FieldWrapper();
-                                fw.fcw = fcw;
-                                fw.fieldName = field;
+                                FieldWrapper fw = buildFieldWrapper((String) oldValue, (String) newValue, field);
                                 fwList.add(fw);
                             }
                         }
@@ -43,6 +38,18 @@ public class AuditTrailHandler implements TriggerHandler {
             System.enqueueJob(new AuditSnapshotQueueable(snapshots));
         }
     }
+
+    private FieldWrapper buildFieldWrapper(String oldVal, String newVal, String fieldName) {
+        FieldChangeWrapper fcw = new FieldChangeWrapper();
+        fcw.oldValue = oldVal;
+        fcw.newValue = newVal;
+        FieldWrapper fw = new FieldWrapper();
+        fw.fcw = fcw;
+        fw.fieldName = fieldName;
+
+        return fw;
+    }
+
     public void afterInsert(List<SObject> newRecords, Map<ID, SObject> newRecordMap) {
         // Optional
     }
