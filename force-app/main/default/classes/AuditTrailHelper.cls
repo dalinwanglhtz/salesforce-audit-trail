@@ -12,7 +12,7 @@ public with sharing class AuditTrailHelper {
 
         for (SObject newRecord : newRecords) {
             SObject oldRecord = oldMap.get(newRecord.Id);
-            List<FieldWrapper> fwList = assessAndBuildFieldChangeList(oldRecord, newRecord, setting);
+            List<FieldChangeWrapper> fwList = assessAndBuildFieldChangeList(oldRecord, newRecord, setting);
             if (!fwList.isEmpty()) {
                 snapshots.add(new Audit_Snapshot__c(
                         Record_Id__c = (Id) newRecord.get('Id'),
@@ -41,16 +41,16 @@ public with sharing class AuditTrailHelper {
         return settingsMap;
     }
 
-    private List<FieldWrapper> assessAndBuildFieldChangeList(SObject oldRecord, SObject newRecord, Audit_Setting__mdt setting) {
+    private List<FieldChangeWrapper> assessAndBuildFieldChangeList(SObject oldRecord, SObject newRecord, Audit_Setting__mdt setting) {
         List<String> trackedFields = setting.Tracked_Fields__c != null ? setting.Tracked_Fields__c.split(',') : null;
-        List<FieldWrapper> fwList = new List<FieldWrapper>();
+        List<FieldChangeWrapper> fwList = new List<FieldChangeWrapper>();
         if (trackedFields != null) {
             for (String field : trackedFields) {
                 field = field.trim();
                 Object oldValue = oldRecord.get(field);
                 Object newValue = newRecord.get(field);
                 if (oldValue != newValue && (oldValue == null || !oldValue.equals(newValue))) {
-                    FieldWrapper fw = buildFieldWrapper(oldValue, newValue, field);
+                    FieldChangeWrapper fw = buildFieldWrapper(oldValue, newValue, field);
                     fwList.add(fw);
                 }
             }
@@ -59,23 +59,17 @@ public with sharing class AuditTrailHelper {
         return fwList;
     }
 
-    private FieldWrapper buildFieldWrapper(Object oldVal, Object newVal, String fieldName) {
+    private FieldChangeWrapper buildFieldWrapper(Object oldVal, Object newVal, String fieldName) {
         FieldChangeWrapper fcw = new FieldChangeWrapper();
         fcw.oldValue = String.valueOf(oldVal);
         fcw.newValue = String.valueOf(newVal);
-        FieldWrapper fw = new FieldWrapper();
-        fw.fcw = fcw;
-        fw.fieldName = fieldName;
+        fcw.fieldName = fieldName;
 
-        return fw;
-    }
-
-    private class FieldWrapper {
-        private String fieldName;
-        private FieldChangeWrapper fcw;
+        return fcw;
     }
 
     private class FieldChangeWrapper {
+        private String fieldName;
         private String oldValue;
         private String newValue;
     }

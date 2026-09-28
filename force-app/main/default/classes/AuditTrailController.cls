@@ -17,23 +17,16 @@ public class AuditTrailController {
                 sw.action = snapshot.Action__c;
                 sw.modifiedBy = snapshot.Modified_By__r.Name;
                 List<Object> changedFields = (List<Object>) System.JSON.deserializeUntyped(snapshot.Changed_Fields_JSON__c);
-                List<FieldChange> changes = new List<FieldChange>();
+                List<FieldChangeDisplayWrapper> changes = new List<FieldChangeDisplayWrapper>();
                 for (Object obj : changedFields) {
                     Map<String, Object> changedField = (Map<String, Object>) obj;
-                    FieldChange fc = new FieldChange();
-                    for (String key : changedField.keySet()) {
-                        Map<String, Object> fcw = new Map<String, Object>();
-                        if (key == 'fcw') {
-                            fcw = (Map<String, Object>) changedField.get(key);
-                            fc.oldValue = (String)fcw.get('oldValue');
-                            fc.newValue = (String)fcw.get('newValue');
-                        } else {
-                            fc.fieldApiName = (String) changedField.get(key);
-                            Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(fc.fieldApiName).getDescribe();
-                            fc.fieldLabel = fieldDescribe.getLabel();
-                        }
-                    }
-                    changes.add(fc);
+                    FieldChangeDisplayWrapper fcdw = new FieldChangeDisplayWrapper();
+                    fcdw.fieldApiName = (String) changedField.get('fieldName');
+                    fcdw.oldValue = (String) changedField.get('oldValue');
+                    fcdw.newValue = (String) changedField.get('newValue');
+                    Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(fcdw.fieldApiName).getDescribe();
+                    fcdw.fieldLabel = fieldDescribe.getLabel();
+                    changes.add(fcdw);
                 }
                 sw.changes = changes;
                 results.add(sw);
@@ -49,10 +42,10 @@ public class AuditTrailController {
         @AuraEnabled public Datetime timestamp;
         @AuraEnabled public String action;
         @AuraEnabled public String modifiedBy;
-        @AuraEnabled public List<FieldChange> changes;
+        @AuraEnabled public List<FieldChangeDisplayWrapper> changes;
     }
 
-    public class FieldChange {
+    public class FieldChangeDisplayWrapper {
         @AuraEnabled public String fieldApiName;
         @AuraEnabled public String fieldLabel;
         @AuraEnabled public String oldValue;
