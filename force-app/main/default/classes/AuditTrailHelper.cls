@@ -3,28 +3,13 @@ public with sharing class AuditTrailHelper {
 
     public void createSnapshots(List<SObject> newRecords, Map<Id, SObject> oldMap) {
         List<Audit_Snapshot__c> snapshots = new List<Audit_Snapshot__c>();
-        List<Audit_Setting__mdt> settings = [
-            SELECT Object_API_Name__c, Tracked_Fields__c 
-            FROM Audit_Setting__mdt
-            WHERE Is_Active__c = true
-        ];
+        List<Audit_Setting__mdt> settings = getFieldsForTracking();
+
         for (SObject newRecord : newRecords) {
             SObject oldRecord = oldMap.get(newRecord.Id);
             for (Audit_Setting__mdt setting : settings) {
                 if (setting.Object_API_Name__c == newRecord.getSObjectType().getDescribe().getName()) {
-                    List<String> trackedFields = setting.Tracked_Fields__c != null ? setting.Tracked_Fields__c.split(',') : null;
-                    List<FieldWrapper> fwList = new List<FieldWrapper>();
-                    if (trackedFields != null) {
-                        for (String field : trackedFields) {
-                            field = field.trim();
-                            Object oldValue = oldRecord.get(field);
-                            Object newValue = newRecord.get(field);
-                            if (oldValue != newValue && (oldValue == null || !oldValue.equals(newValue))) {
-                                FieldWrapper fw = buildFieldWrapper((String) oldValue, (String) newValue, field);
-                                fwList.add(fw);
-                            }
-                        }
-                    }
+                    List<FieldWrapper> fwList = assessAndBuildFieldChangeList(oldRecord, newRecord, setting);
                     snapshots.add(new Audit_Snapshot__c(
                             Record_Id__c = (Id) newRecord.get('Id'),
                             Object_API_Name__c = newRecord.getSObjectType().getDescribe().getName(),
@@ -39,6 +24,32 @@ public with sharing class AuditTrailHelper {
         if (!snapshots.isEmpty()) {
             System.enqueueJob(new AuditSnapshotQueueable(snapshots));
         }
+    }
+
+    private List<Audit_Setting__mdt> getFieldsForTracking() {
+        return [
+            SELECT Object_API_Name__c, Tracked_Fields__c 
+            FROM Audit_Setting__mdt
+            WHERE Is_Active__c = true
+        ];
+    }
+
+    private List<FieldWrapper> assessAndBuildFieldChangeList(SObject oldRecord, SObject newRecord, Audit_Setting__mdt setting) {
+        List<String> trackedFields = setting.Tracked_Fields__c != null ? setting.Tracked_Fields__c.split(',') : null;
+        List<FieldWrapper> fwList = new List<FieldWrapper>();
+        if (trackedFields != null) {
+            for (String field : trackedFields) {
+                field = field.trim();
+                Object oldValue = oldRecord.get(field);
+                Object newValue = newRecord.get(field);
+                if (oldValue != newValue && (oldValue == null || !oldValue.equals(newValue))) {
+                    FieldWrapper fw = buildFieldWrapper((String) oldValue, (String) newValue, field);
+                    fwList.add(fw);
+                }
+            }
+        }
+
+        return fwList;
     }
 
     private FieldWrapper buildFieldWrapper(String oldVal, String newVal, String fieldName) {
