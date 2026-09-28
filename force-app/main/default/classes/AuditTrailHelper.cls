@@ -3,22 +3,25 @@ public with sharing class AuditTrailHelper {
 
     public void createSnapshots(List<SObject> newRecords, Map<Id, SObject> oldMap) {
         List<Audit_Snapshot__c> snapshots = new List<Audit_Snapshot__c>();
-        List<Audit_Setting__mdt> settings = getFieldsForTracking();
+        Map<String, Audit_Setting__mdt> settings = getFieldsForTracking();
+        String objAPIName = newRecords[0].getSObjectType().getDescribe().getName();
+        Audit_Setting__mdt setting = settings.get(objAPIName);
+        if(setting == null || String.isBlank(setting.Tracked_Fields__c)) {
+            return;
+        }
 
         for (SObject newRecord : newRecords) {
             SObject oldRecord = oldMap.get(newRecord.Id);
-            for (Audit_Setting__mdt setting : settings) {
-                if (setting.Object_API_Name__c == newRecord.getSObjectType().getDescribe().getName()) {
-                    List<FieldWrapper> fwList = assessAndBuildFieldChangeList(oldRecord, newRecord, setting);
-                    snapshots.add(new Audit_Snapshot__c(
-                            Record_Id__c = (Id) newRecord.get('Id'),
-                            Object_API_Name__c = newRecord.getSObjectType().getDescribe().getName(),
-                            Action__c = 'Update',
-                            Changed_Fields_JSON__c = JSON.serialize(fwList),
-                            Modified_By__c = (String) newRecord.get('LastModifiedById')
-                        )
-                    );
-                }
+            List<FieldWrapper> fwList = assessAndBuildFieldChangeList(oldRecord, newRecord, setting);
+            if (!fwList.isEmpty()) {
+                snapshots.add(new Audit_Snapshot__c(
+                        Record_Id__c = (Id) newRecord.get('Id'),
+                        Object_API_Name__c = newRecord.getSObjectType().getDescribe().getName(),
+                        Action__c = 'Update',
+                        Changed_Fields_JSON__c = JSON.serialize(fwList),
+                        Modified_By__c = (String) newRecord.get('LastModifiedById')
+                    )
+                );
             }
         }
         if (!snapshots.isEmpty()) {
@@ -26,12 +29,16 @@ public with sharing class AuditTrailHelper {
         }
     }
 
-    private List<Audit_Setting__mdt> getFieldsForTracking() {
-        return [
-            SELECT Object_API_Name__c, Tracked_Fields__c 
-            FROM Audit_Setting__mdt
-            WHERE Is_Active__c = true
-        ];
+    private Map<String, Audit_Setting__mdt> getFieldsForTracking() {
+        Map<String, Audit_Setting__mdt> settingsMap = new Map<String, Audit_Setting__mdt>();
+        for (Audit_Setting__mdt setting : [
+                SELECT Object_API_Name__c, Tracked_Fields__c 
+                FROM Audit_Setting__mdt
+                WHERE Is_Active__c = true    
+        ]) {
+            settingsMap.put(setting.Object_API_Name__c, setting);
+        }
+        return settingsMap;
     }
 
     private List<FieldWrapper> assessAndBuildFieldChangeList(SObject oldRecord, SObject newRecord, Audit_Setting__mdt setting) {
@@ -43,7 +50,7 @@ public with sharing class AuditTrailHelper {
                 Object oldValue = oldRecord.get(field);
                 Object newValue = newRecord.get(field);
                 if (oldValue != newValue && (oldValue == null || !oldValue.equals(newValue))) {
-                    FieldWrapper fw = buildFieldWrapper((String) oldValue, (String) newValue, field);
+                    FieldWrapper fw = buildFieldWrapper(oldValue, newValue, field);
                     fwList.add(fw);
                 }
             }
@@ -52,10 +59,10 @@ public with sharing class AuditTrailHelper {
         return fwList;
     }
 
-    private FieldWrapper buildFieldWrapper(String oldVal, String newVal, String fieldName) {
+    private FieldWrapper buildFieldWrapper(Object oldVal, Object newVal, String fieldName) {
         FieldChangeWrapper fcw = new FieldChangeWrapper();
-        fcw.oldValue = oldVal;
-        fcw.newValue = newVal;
+        fcw.oldValue = String.valueOf(oldVal);
+        fcw.newValue = String.valueOf(newVal);
         FieldWrapper fw = new FieldWrapper();
         fw.fcw = fcw;
         fw.fieldName = fieldName;
