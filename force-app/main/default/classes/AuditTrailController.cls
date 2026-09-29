@@ -8,33 +8,41 @@ public class AuditTrailController {
                 WHERE Record_Id__c = :recordId
                 ORDER BY CreatedDate DESC
             ];
-            List<SnapshotWrapper> results = new List<SnapshotWrapper>();
-            for (Audit_Snapshot__c snapshot : snapshots) {
-                Schema.SObjectType targetType = Schema.getGlobalDescribe().get(snapshot.Object_API_Name__c);
-                SnapshotWrapper sw = new SnapshotWrapper();
-                sw.id = snapshot.Id;
-                sw.timestamp = snapshot.CreatedDate;
-                sw.action = snapshot.Action__c;
-                sw.modifiedBy = snapshot.Modified_By__r.Name;
-                List<Object> changedFields = (List<Object>) System.JSON.deserializeUntyped(snapshot.Changed_Fields_JSON__c);
-                List<FieldChangeDisplayWrapper> changes = new List<FieldChangeDisplayWrapper>();
-                for (Object obj : changedFields) {
-                    Map<String, Object> changedField = (Map<String, Object>) obj;
-                    FieldChangeDisplayWrapper fcdw = new FieldChangeDisplayWrapper();
-                    fcdw.fieldApiName = (String) changedField.get('fieldName');
-                    fcdw.oldValue = (String) changedField.get('oldValue');
-                    fcdw.newValue = (String) changedField.get('newValue');
-                    Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(fcdw.fieldApiName).getDescribe();
-                    fcdw.fieldLabel = fieldDescribe.getLabel();
-                    changes.add(fcdw);
+            if(!snapshots.isEmpty()) {
+                Schema.SObjectType targetType = Schema.getGlobalDescribe().get(snapshots[0].Object_API_Name__c);
+                List<SnapshotWrapper> results = new List<SnapshotWrapper>();
+                for (Audit_Snapshot__c snapshot : snapshots) {
+                    SnapshotWrapper sw = new SnapshotWrapper();
+                    sw.id = snapshot.Id;
+                    sw.timestamp = snapshot.CreatedDate;
+                    sw.action = snapshot.Action__c;
+                    sw.modifiedBy = snapshot.Modified_By__r.Name;
+                    sw.changes = getFieldChanges(targetType, (List<Object>) System.JSON.deserializeUntyped(snapshot.Changed_Fields_JSON__c));
+                    results.add(sw);
                 }
-                sw.changes = changes;
-                results.add(sw);
+                return results;
+            } else {
+                return null;
             }
-            return results;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
+    }
+
+    private static List<FieldChangeDisplayWrapper> getFieldChanges(Schema.SObjectType targetType, List<Object> changedFields) {
+        List<FieldChangeDisplayWrapper> changes = new List<FieldChangeDisplayWrapper>();
+        for (Object obj : changedFields) {
+            Map<String, Object> changedField = (Map<String, Object>) obj;
+            FieldChangeDisplayWrapper fcdw = new FieldChangeDisplayWrapper();
+            fcdw.fieldApiName = (String) changedField.get('fieldName');
+            fcdw.oldValue = (String) changedField.get('oldValue');
+            fcdw.newValue = (String) changedField.get('newValue');
+            Schema.DescribeFieldResult fieldDescribe = targetType.getDescribe().fields.getMap().get(fcdw.fieldApiName).getDescribe();
+            fcdw.fieldLabel = fieldDescribe.getLabel();
+            changes.add(fcdw);
+        }
+
+        return changes;
     }
 
     public class SnapshotWrapper {
