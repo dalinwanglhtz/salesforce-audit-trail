@@ -2,12 +2,8 @@ public class AuditTrailController {
     @AuraEnabled(cacheable=true)
     public static List<SnapshotWrapper> getRecordSnapshots(Id recordId){
         try {
-            List<Audit_Snapshot__c> snapshots = [
-                SELECT Id, Record_Id__c, Object_API_Name__c, Action__c, Changed_Fields_JSON__c, Modified_By__r.Name, CreatedDate 
-                FROM Audit_Snapshot__c
-                WHERE Record_Id__c = :recordId
-                ORDER BY CreatedDate DESC
-            ];
+            List<Audit_Snapshot__c> snapshots = getSnapshots(recordId);
+
             if(!snapshots.isEmpty()) {
                 Schema.SObjectType targetType = Schema.getGlobalDescribe().get(snapshots[0].Object_API_Name__c);
                 List<SnapshotWrapper> results = new List<SnapshotWrapper>();
@@ -27,6 +23,17 @@ public class AuditTrailController {
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
+    }
+
+    private static List<Audit_Snapshot__c> getSnapshots(Id recordId) {
+        List<Audit_Snapshot__c> snapshots = [
+            SELECT Id, Record_Id__c, Object_API_Name__c, Action__c, Changed_Fields_JSON__c, Modified_By__r.Name, CreatedDate 
+            FROM Audit_Snapshot__c
+            WHERE Record_Id__c = :recordId
+            ORDER BY CreatedDate DESC
+        ];
+
+        return snapshots;
     }
 
     private static List<FieldChangeDisplayWrapper> getFieldChanges(Schema.SObjectType targetType, List<Object> changedFields) {
