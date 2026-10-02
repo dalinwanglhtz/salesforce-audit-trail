@@ -1,8 +1,18 @@
 <template>
     <div class="slds-card slds-p-around_medium">
-        <template lwc:if={snapshots.length}>
+        <header class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+            <h2 class="slds-text-heading_small slds-font-weight_bold">Audit Trail</h2>
+            <lightning-button
+                label="View All Snapshots"
+                variant="base"
+                icon-name="utility:new_window"
+                icon-position="right"
+                onclick={navigateToListView}
+            ></lightning-button>
+        </header>
+        <template lwc:if={displayedSnapshots.length}>
             <ul class="slds-timeline">
-                <template for:each={snapshots} for:item="snap">
+                <template for:each={displayedSnapshots} for:item="snap">
                     <li key={snap.id}>
                         <div class="slds-timeline__item_expandable slds-timeline__item_active slds-has-flexi-truncate">
                             <div class="slds-media">
@@ -52,6 +62,24 @@
                     </li>
                 </template>
             </ul>
+            <template lwc:if={hasMultiplePages}>
+                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-top_medium slds-border_top slds-p-top_small">
+                    <lightning-button
+                        icon-name="utility:chevronleft"
+                        onclick={handlePrevious}
+                        disabled={isFirstPage}
+                    ></lightning-button>
+                    <span class="slds-text-body_small slds-text-color_weak">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <lightning-button
+                        icon-name="utility:chevronright"
+                        icon-position="right"
+                        onclick={handleNext}
+                        disabled={isLastPage}
+                    ></lightning-button>
+                </div>
+            </template>
         </template>
         <template lwc:else>
             <div class="slds-text-align_center slds-text-color_weak slds-p-around_medium">
