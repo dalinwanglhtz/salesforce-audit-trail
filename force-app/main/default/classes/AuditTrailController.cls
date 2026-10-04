@@ -1,4 +1,7 @@
 public with sharing class AuditTrailController {
+    @TestVisible
+    private static AuditTrailSelector selector = new AuditTrailSelector();
+
     @AuraEnabled(cacheable=true)
     public static List<SnapshotWrapper> getRecordSnapshots(Id recordId){
         try {
@@ -6,7 +9,7 @@ public with sharing class AuditTrailController {
                 return new List<SnapshotWrapper>();
             }
 
-            List<Audit_Snapshot__c> snapshots = getSnapshots(recordId);
+            List<Audit_Snapshot__c> snapshots = selector.getSnapshots(recordId);
 
             if(!snapshots.isEmpty()) {
                 Schema.SObjectType targetType = Schema.getGlobalDescribe().get(snapshots[0].Object_API_Name__c);
@@ -38,28 +41,16 @@ public with sharing class AuditTrailController {
         }
     }
 
-    private static List<Audit_Snapshot__c> getSnapshots(Id recordId) {
-        List<Audit_Snapshot__c> snapshots = [
-            SELECT Id, Record_Id__c, Object_API_Name__c, Action__c, Changed_Fields_JSON__c, Modified_By__r.Name, CreatedDate 
-            FROM Audit_Snapshot__c
-            WHERE Record_Id__c = :recordId
-            WITH USER_MODE
-            ORDER BY CreatedDate DESC
-        ];
-
-        return snapshots;
-    }
-
     private static List<FieldChangeDisplayWrapper> getFieldChanges(Map<String, Schema.SObjectField> fieldMap, List<Object> changedFields) {
         List<FieldChangeDisplayWrapper> changes = new List<FieldChangeDisplayWrapper>();
         for (Object obj : changedFields) {
             Map<String, Object> changedField = (Map<String, Object>) obj;
             FieldChangeDisplayWrapper fcdw = new FieldChangeDisplayWrapper();
             fcdw.fieldApiName = String.valueOf(changedField.get('fieldName'));
-            fcdw.oldValue = String.valueOf(changedField.get('oldValue'));
-            fcdw.newValue = String.valueOf(changedField.get('newValue'));
-            Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fcdw.fieldApiName).getDescribe();
-            if(fieldMap.containsKey(fcdw.fieldApiName)) {
+            fcdw.oldValue = changedField.get('oldValue') != null ? String.valueOf(changedField.get('oldValue')) : '';
+            fcdw.newValue = changedField.get('newValue') != null ? String.valueOf(changedField.get('newValue')) : '';
+            if(fieldMap.containsKey(fcdw.fieldApiName.toLowerCase())) {
+                Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fcdw.fieldApiName).getDescribe();
                 fcdw.fieldLabel = fieldDescribe.getLabel();
             } else {
                 fcdw.fieldLabel = fcdw.fieldApiName;
