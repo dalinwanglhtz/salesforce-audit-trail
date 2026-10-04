@@ -1,9 +1,13 @@
 public with sharing class AuditTrailHelper {
-    public AuditTrailHelper() {}
+    
+    @TestVisible
+    private static AuditTrailSelector selector = new AuditTrailSelector();
 
     public void createSnapshots(List<SObject> newRecords, Map<Id, SObject> oldMap) {
+        if (newRecords == null || newRecords.isEmpty()) return;
+
         List<Audit_Snapshot__c> snapshots = new List<Audit_Snapshot__c>();
-        Map<String, Audit_Setting__mdt> settings = getFieldsForTracking();
+        Map<String, Audit_Setting__mdt> settings = selector.getActiveSettings();
         String objAPIName = newRecords[0].getSObjectType().getDescribe().getName();
         Audit_Setting__mdt setting = settings.get(objAPIName);
         if(setting == null || String.isBlank(setting.Tracked_Fields__c)) {
@@ -27,18 +31,6 @@ public with sharing class AuditTrailHelper {
         if (!snapshots.isEmpty()) {
             System.enqueueJob(new AuditSnapshotQueueable(snapshots));
         }
-    }
-
-    private Map<String, Audit_Setting__mdt> getFieldsForTracking() {
-        Map<String, Audit_Setting__mdt> settingsMap = new Map<String, Audit_Setting__mdt>();
-        for (Audit_Setting__mdt setting : [
-                SELECT Object_API_Name__c, Tracked_Fields__c 
-                FROM Audit_Setting__mdt
-                WHERE Is_Active__c = true    
-        ]) {
-            settingsMap.put(setting.Object_API_Name__c, setting);
-        }
-        return settingsMap;
     }
 
     private List<FieldChangeWrapper> assessAndBuildFieldChangeList(SObject oldRecord, SObject newRecord, Audit_Setting__mdt setting) {
