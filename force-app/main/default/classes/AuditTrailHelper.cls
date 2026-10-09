@@ -1,9 +1,9 @@
-public with sharing class AuditTrailHelper {
+public with sharing virtual class AuditTrailHelper {
     
     @TestVisible
     private static AuditTrailSelector selector = new AuditTrailSelector();
 
-    public void createSnapshots(List<SObject> newRecords, Map<Id, SObject> oldMap) {
+    public virtual void createSnapshots(List<SObject> newRecords, Map<Id, SObject> oldMap) {
         if (newRecords == null || newRecords.isEmpty()) return;
 
         List<Audit_Snapshot__c> snapshots = new List<Audit_Snapshot__c>();

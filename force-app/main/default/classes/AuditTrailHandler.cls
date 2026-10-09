@@ -1,8 +1,13 @@
 public class AuditTrailHandler implements TriggerHandler {
-    public AuditTrailHelper helper;
+    @TestVisible
+    private AuditTrailHelper helper;
 
     public AuditTrailHandler () {
-        helper = new AuditTrailHelper();
+        this(new AuditTrailHelper());
+    }
+
+    public AuditTrailHandler(AuditTrailHelper helper) {
+        this.helper = helper;
     }
 
     public void afterUpdate(List<SObject> oldRecords, List<SObject> newRecords, Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
